@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+
+
+
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Main",
+            "type": "python",
+            "request": "launch",
+            "program": "liftOverCNV.py",
+            "args": [
+                "chain_files/hg18ToHg38.over.chain.gz",
+                "test_files/CNVs_hg18_5Lines.txt",
+                "temp/CNVs_hg38_5Lines_lifted.txt"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Main_long",
+            "type": "python",
+            "request": "launch",
+            "program": "liftOverCNV.py",
+            "args": [
+                "chain_files/hg18ToHg38.over.chain.gz",
+                "test_files/CNVs_hg18.txt",
+                "temp/CNVs_hg38_lifted.txt"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Test",
+            "type": "python",
+            "request": "launch",
+            "program": "test.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}
