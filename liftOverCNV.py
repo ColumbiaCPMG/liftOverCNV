@@ -57,19 +57,23 @@ def liftPosition (chain_file, position):
 
     while lifted_position is '':
         minMatch -= 1
-        # process the temp file with liftover
         minMatch_str = str(minMatch / 100)
-        success = subprocess.call([
-            "./liftOver", 
-            "-positions", 
-            "-minMatch=" + minMatch_str,
-            temp_input_file_path, 
-            chain_file, 
-            temp_lifted_file_path,
-            temp_unmap_file_path
-        ])
 
-        if success == 0:
+        # process the temp file with liftover
+        proc = subprocess.run(
+            [
+                "./liftOver", 
+                "-positions", 
+                "-minMatch=" + minMatch_str,
+                temp_input_file_path, 
+                chain_file, 
+                temp_lifted_file_path,
+                temp_unmap_file_path
+            ],
+            capture_output=True        
+        )
+        
+        if proc.returncode == 0:
             # read liftOver's output file and return the position
             lifted_file = open(temp_lifted_file_path, 'r')
             with lifted_file:
@@ -85,7 +89,7 @@ def liftPosition (chain_file, position):
                 return lifted_position, minMatch_str
 
         else:
-            raise Exception("liftOver app returned a non-zero exit code")
+            raise Exception("The liftOver app returned an error:\n\n" + proc.stderr.decode("utf-8"))
 
 
 
@@ -112,15 +116,13 @@ def convertLiftedBedToCNV(lifted_bed_file_path, header, args):
 
 
 
-def checkForLiftOver():
-    bash_cmd = './liftOver' 
-    proc = subprocess.Popen(bash_cmd,
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE,
-    )
-    stderr = proc.communicate()[1]
-    is_installed = "liftOver - Move annotations from one assembly to another" in stderr.decode('utf-8')
-    return is_installed
+def checkForLiftOver(): 
+    is_installed = os.path.exists('./liftOver')
+
+    if is_installed: 
+        return True, None
+    else:
+        return False, "The liftOver binary is not installed."
 
 
 def checkFilesExist(args):

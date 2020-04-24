@@ -14,5 +14,5 @@ Run command to download the chain files.
 
 **Example**
 Run the following example which should now work:
-`python3 liftOverCNV.py chain_files/hg19ToHg38.over.chain.gz test_files/CNVs_hg18.txt "CNVs_hg38_lifted.txt"`
+`python3 liftOverCNV.py chain_files/hg19ToHg38.over.chain.gz test_files/CNVs_hg18.txt CNVs_hg38_lifted.txt`
 
