@@ -1,7 +1,10 @@
 # liftCNV
-Wrapper for CrossMap to Lift Over CNVs between human genome builds.  CNV file must have first column in format chr:start-end (PennCNV format).
+Wrapper to use liftOver to lift CNVs between genome builds.  The minimum match is reduced by 1% each time until a matching liftover can be found.  
 
-**Usage**
+Input: CNV file must have first column in format chr:start-end (PennCNV format) <br>
+Output columns: 'new_positions'  'match_percent' 'original columns...'
+
+**Usage:** <br>
 `python3 liftOverCNV.py [chain_file] [cnv_file] [output_file]`
 
 
