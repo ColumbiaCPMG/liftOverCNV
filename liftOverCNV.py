@@ -4,8 +4,9 @@ import subprocess
 import csv
 import glob
 import argparse
+import re
 
-
+pos_format = re.compile('chr..?:\d+-\d+')
 
 def main():
     args = parseArgs(sys.argv)
@@ -19,29 +20,42 @@ def main():
     exists, file_not_found = checkFilesExist(args)
     if not exists:
         die(file_not_found)
+    
+    liftCNVfile(args.chain, args.variants, args.pos_col)
 
-    liftCNVfile(args.chain, args.variants, args.pos_col, args.output)
 
 
-
-def liftCNVfile(chain_file_path, variants_file_path, pos_col, output_file):
+def liftCNVfile(chain_file_path, variants_file_path, pos_col):
     vf = open(variants_file_path, 'r')
-    output_file2 = open(variants_file_path + '.conversions.txt', 'w')
-    with vf, output_file:
+    chain = os.path.splitext(os.path.basename(chain_file_path))[0]
+    output_file = open(os.path.splitext(variants_file_path)[0] + '_liftOverd_' + chain + '.txt', 'w',)
+    output_file2 = open(os.path.splitext(variants_file_path)[0] + chain + '_conversions.txt', 'w')
+    with vf, output_file, output_file2:
         reader = csv.reader(vf, delimiter='\t')
         writer1 = csv.writer(output_file, delimiter='\t')
         writer2 = csv.writer(output_file2, delimiter='\t')
-        for row in reader:
-            if "Position" in row[int(pos_col)-1]:
+        writer2.writerow(['Position', 'lifted_Position', "Match_ratio", 'BP_size', 'lifted_BP_size'])
+        for rownum, row in enumerate(reader, 1):
+            if not pos_format.match(row[int(pos_col)-1]) and rownum == 1:
+                print("Skipping header row without chrN:Sart-End\n")
+                if re.search('Position', row[int(pos_col)-1]):
+                    row[int(pos_col)-1] = re.sub('.*Position.*', 'liftedPosition' + chain, row[int(pos_col)-1])
+                writer1.writerow(row)
+                continue
+            elif not pos_format.match(row[int(pos_col)-1]):
+                print("Skipping row " + str(rownum) + " without chrN:Sart-End\n")
                 continue
 
             position = row[int(pos_col)-1]
-            lifted_position, match_ratio = liftPosition(chain_file_path, position)
-            row[int(pos_col)-1] = lifted_position
+            bp = int(re.split(':|-', row[int(pos_col)-1])[2]) - int(re.split(':|-',row[int(pos_col)-1])[1])
 
+            lifted_position, match_ratio = liftPosition(chain_file_path, position)
             if lifted_position is not None:
+                row[int(pos_col)-1] = lifted_position
+                lifted_bp = int(re.split(':|-', lifted_position)[2]) - int(re.split(':|-', lifted_position)[1])
+                row[int(pos_col)+1] = lifted_bp
                 writer1.writerow(row)
-                writer2.writerow([position, lifted_position, match_ratio])
+                writer2.writerow([position, lifted_position, match_ratio, bp, lifted_bp])
 
 
 
@@ -51,6 +65,8 @@ def liftPosition (chain_file, position):
     temp_input_file_path = '_position.temp'
     temp_lifted_file_path = '_liftOver.temp'
     temp_unmap_file_path = "_liftOver.temp.unmap"
+
+    trash_message = open(os.devnull, 'w')
 
     temp_input_file = open(temp_input_file_path, 'w')
     with temp_input_file as f:
@@ -71,7 +87,7 @@ def liftPosition (chain_file, position):
             chain_file,
             temp_lifted_file_path,
             temp_unmap_file_path
-        ])
+        ],  stderr = trash_message)
 
         if success == 0:
             # read liftOver's output file and return the position
@@ -90,30 +106,6 @@ def liftPosition (chain_file, position):
 
         else:
             raise Exception("liftOver app returned a non-zero exit code")
-
-
-
-# def convertLiftedBedToCNV(lifted_bed_file_path, header, args):
-#     lifted_file = open(lifted_bed_file_path, mode='r')
-#     writer = csv.writer(args.output, delimiter='\t' )
-#
-#     header[0] += '_old'
-#     header = ["Position_new"] + header
-#     writer.writerow(header)
-#
-#     with lifted_file, args.output:
-#         reader = csv.reader(lifted_file, delimiter='\t')
-#         for row in reader:
-#             pos = "{}:{}-{}".format(row[0], row[1], row[2])
-#             writer.writerow([pos] + row[3:])
-#
-#     os.remove(lifted_bed_file_path)
-#
-#     if args.output == sys.stdout:
-#         os.rename(lifted_file.name + ".unmap", args.variants + ".unmap")
-#     else:
-#         os.rename(lifted_file.name + ".unmap", args.output.name + ".unmap")
-
 
 
 def checkForLiftOver():
@@ -146,9 +138,9 @@ def parseArgs(args):
                         help='File containing variants in PennCNV format.')
     parser.add_argument('pos_col', metavar='PositionColumnInVariantsFile', default=1,
                         help='Column with Position within File containing variants in PennCNV format.')
-    parser.add_argument('output', metavar='OutputFile', nargs='?', default=sys.stdout,
-                        type=argparse.FileType('w'),
-                        help='File containing variants in PennCNV format.')
+    #parser.add_argument('output', metavar='OutputFile', nargs='?', default=sys.stdout,
+                        #type=argparse.FileType('w'),
+                        #help='File containing variants in PennCNV format.')
 
     return parser.parse_args()
 
